@@ -1,0 +1,30 @@
+{
+  "name": "northrook/php-generator",
+  "description": "PHP code generation.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Martin Nielsen",
+      "email": "mn@northrook.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Support\\": "src"
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": ">=8.3",
+    "northrook/core": "dev-main",
+    "symfony/var-exporter": "*"
+  },
+  "require-dev": {
+    "northrook/dev": "dev-main"
+  },
+  "scripts": {
+    "phpstan": "@php vendor/bin/phpstan analyse"
+  }
+}

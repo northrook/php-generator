@@ -1,0 +1,63 @@
+parameters:
+	level: 9
+	paths:
+		- src
+		- vendor
+	treatPhpDocTypesAsCertain: false
+	reportUnmatchedIgnoredErrors: false
+	ignoreErrors:
+		-
+			message: '#Expression on left side of \?\? is always null.#'
+			path: *.php
+
+		-
+			message: '#Access to an undefined static property .+::\$.+#'
+			path: *.php
+
+		-
+			message: '#Access to an uninitialized readonly property .+::\$.+#'
+			path: *.php
+
+		-
+			message: '#Property .+::\$serviceContainer is never read, only written.#'
+			path: *.php
+
+		-
+			message: "#Readonly property .+ is assigned outside of the constructor.#"
+			path: *.php
+
+		-
+			message: "#Class .+ has an uninitialized readonly property .+ Assign it in the constructor.#"
+			path: *.php
+
+		-
+			message: "#Constructor of class .+DependencyInjection.+ has an unused parameter .+.#"
+			path: *.php
+
+		-
+			message: "#Method .+ should return .+ but returns mixed.#"
+			path: *.php
+
+		-
+			message: "#Method .+ has parameter .+ with no value type specified in iterable type iterable.#"
+			path: *.php
+
+		-
+			message: "#PHPDoc tag @phpstan-assert-if-true for .+ has no value type specified .+#"
+			path: *.php
+
+		-
+			message: "#Cannot cast mixed to .+.#"
+			path: *.php
+
+		-
+			message: "#Call to function assert\\(\\) with .+ will always evaluate to .+.#"
+			path: *.php
+
+		-
+			message: "#Call to function .+implements_interface\\(\\).+will always evaluate to true.#"
+			path: *.php
+
+		-
+			message: "#Parameter \\#1 \\$callback of function array_map expects \\(callable\\(\\)\\: mixed\\)\\|null, Closure\\(array<int, string\\|null>\\|string, bool\\=\\)\\: string given.#"
+			path: *.php
