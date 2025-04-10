@@ -6,31 +6,51 @@ namespace Support;
 
 use Core\Interface\Printable;
 
+use JetBrains\PhpStorm\Language;
 use Stringable;
 
 class PhpGenerator implements Printable
 {
-    protected string $php = '';
+    protected string $php;
+
+    /** @var array<string, bool> */
+    protected array $uses = [];
 
     protected string $generator;
 
     protected ?string $comment = null;
 
     /**
-     * @param string      $name
-     * @param null|string $generator
-     * @param bool        $strict
+     * @param string          $name
+     * @param null|string     $namespace
+     * @param string|string[] $uses
+     * @param null|string     $generator
+     * @param bool            $strict
      */
     public function __construct(
-        public readonly string $name,
-        ?string                $generator = null,
-        public bool            $strict = false,
+        public readonly string  $name,
+        public readonly ?string $namespace = null,
+        string|array            $uses = [],
+        ?string                 $generator = null,
+        public bool             $strict = false,
     ) {
         $this->generator = $generator ?? $this::class;
+
+        $this->uses( ...( \is_string( $uses ) ? [$uses] : $uses ) );
+    }
+
+    public function uses( string ...$fqn ) : self
+    {
+        foreach ( $fqn as $use ) {
+            $this->uses[$use] = true;
+        }
+        return $this;
     }
 
     public function __toString() : string
     {
+        $this->generate();
+
         $dateTime = Time::now();
 
         $timestamp       = $dateTime->unixTimestamp;
@@ -68,13 +88,60 @@ class PhpGenerator implements Printable
         return \trim( \implode( NEWLINE, $output ) ).NEWLINE;
     }
 
+    /**
+     * @param string ...$php
+     *
+     * @return $this
+     */
+    final public function raw(
+        #[Language( 'PHP' )]
+        string ...$php,
+    ) : self {
+        $this->php = \implode( NEWLINE, $php );
+
+        return $this;
+    }
+
     public function generate( bool $regenerate = false ) : string
     {
         if ( $this->php && ! $regenerate ) {
             return $this->php;
         }
 
-        return __METHOD__;
+        return $this->php = $this->generateHead();
+    }
+
+    protected function generateHead() : string
+    {
+        $php = ['<?php'];
+
+        if ( $this->strict ) {
+            $php['strict'] = 'declare(strict_types=1);';
+        }
+
+        if ( $this->namespace ) {
+            $php['namespace'] = 'namespace '.$this->namespace.';';
+        }
+
+        if ( $this->uses ) {
+            foreach ( $this->getUses() as $use ) {
+                $php['use'][] = "use {$use};";
+            }
+
+            if ( \array_key_exists( 'use', $php ) ) {
+                $php['use'] = \implode( "\n", $php['use'] );
+            }
+        }
+
+        return \trim( \implode( "\n\n", $php ) );
+    }
+
+    /**
+     * @return string[]
+     */
+    final protected function getUses() : array
+    {
+        return \array_keys( \array_filter( $this->uses ) );
     }
 
     public static function dump( mixed $value, bool $multiline = false ) : string

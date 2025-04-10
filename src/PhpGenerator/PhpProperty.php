@@ -8,33 +8,43 @@ final class PhpProperty extends PhpFragment
 {
     public const string TYPE = 'property';
 
-    protected string $arguments;
-
-    protected string $returnType;
+    protected string $type;
 
     /**
      * @param string          $name
-     * @param string          $code
-     * @param string|string[] $arguments
-     * @param string|string[] $returns
+     * @param string|string[] $type
+     * @param mixed           $defaultValue
      * @param Visibility      $visibility
+     * @param bool            $readonly
      * @param null|string     $comment
      */
     public function __construct(
         public readonly string $name,
-        protected string       $code,
-        string|array           $arguments = '',
-        string|array           $returns = 'void',
+        string|array           $type,
+        protected mixed        $defaultValue = Argument::UNASSIGNED,
         public Visibility      $visibility = Visibility::PUBLIC,
+        public bool            $readonly = false,
         protected ?string      $comment = null,
     ) {
-        // each $argument is a string, trim up until $variableName, any before is type declarations
-        $this->arguments  = \is_array( $arguments ) ? \implode( ' ', $arguments ) : $arguments;
-        $this->returnType = \is_array( $returns ) ? \implode( '|', $returns ) : $returns;
+        $this->type = \is_array( $type ) ? \implode( '|', $type ) : $type;
     }
 
     public function build() : string
     {
-        return __METHOD__;
+        $property = $this->comment ? <<<PHP
+            /**
+             * {$this->comment}
+             */
+            PHP."\n" : '';
+
+        $property .= "{$this->visibility->value} ";
+        $property .= $this->readonly ? 'readonly ' : '';
+        $property .= "{$this->type} \${$this->name}";
+
+        if ( $this->defaultValue !== Argument::UNASSIGNED ) {
+            $property .= ' = '.Argument::export( $this->defaultValue );
+        }
+
+        return "{$property};";
     }
 }

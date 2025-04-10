@@ -6,26 +6,15 @@ namespace Support;
 
 use Override;
 use Stringable;
-use Support\PhpGenerator\{
-    PhpConstant,
-    PhpFragment,
-    PhpMethod,
-    PhpProperty,
-    Visibility,
-};
+use Support\PhpGenerator\{Argument, PhpConstant, PhpFragment, PhpMethod, PhpProperty, Visibility};
 
 class PhpClass extends PhpGenerator
 {
     public readonly string $className;
 
-    public readonly ?string $namespace;
-
     protected bool $abstract = false;
 
     protected bool $final = false;
-
-    /** @var array<string, bool> */
-    protected array $uses = [];
 
     /** @var array<string, bool> */
     protected array $extends = [];
@@ -45,19 +34,17 @@ class PhpClass extends PhpGenerator
     /** @var PhpMethod[] */
     protected array $methods = [];
 
-    protected ?string $comment = null;
-
     /**
      * @param string          $className
-     * @param string|string[] $uses
      * @param null|string     $namespace
+     * @param string|string[] $uses
      * @param null|string     $generator
      * @param bool            $strict
      */
     public function __construct(
         string       $className,
-        string|array $uses = [],
         ?string      $namespace = null,
+        string|array $uses = [],
         ?string      $generator = null,
         public bool  $strict = false,
     ) {
@@ -68,60 +55,23 @@ class PhpClass extends PhpGenerator
             $className = \trim( \substr( $className, $position ), " \n\r\t\v\0\\" );
         }
 
-        parent::__construct( $className, $generator, $strict );
-        $this->namespace = $namespace;
-
-        $this->uses( ...( \is_string( $uses ) ? [$uses] : $uses ) );
+        parent::__construct( $className, $namespace, $uses, $generator, $strict );
     }
 
     #[Override]
     public function generate( bool $regenerate = false ) : string
     {
-        if ( $this->php && ! $regenerate ) {
+        if ( isset( $this->php ) && ! $regenerate ) {
             return $this->php;
         }
 
-        return $this->php = <<<PHP
-            {$this->generateHead()}
-                   
-            {$this->generateClass()}
-            {
-                {$this->generateBody()}
-            }
-            PHP;
-    }
+        $this->php = $this->generateHead();
 
-    /**
-     * @return string[]
-     */
-    final protected function getUses() : array
-    {
-        return \array_keys( \array_filter( $this->uses ) );
-    }
+        $this->php .= $this->generateClass();
 
-    private function generateHead() : string
-    {
-        $php = ['<?php'];
+        $this->php .= $this->generateBody();
 
-        if ( $this->strict ) {
-            $php['strict'] = 'declare(strict_types=1);';
-        }
-
-        if ( $this->namespace ) {
-            $php['namespace'] = 'namespace '.$this->namespace.';';
-        }
-
-        if ( $this->uses ) {
-            foreach ( $this->getUses() as $use ) {
-                $php['use'][] = "use {$use};";
-            }
-
-            if ( \array_key_exists( 'use', $php ) ) {
-                $php['use'] = \implode( "\n", $php['use'] );
-            }
-        }
-
-        return \trim( \implode( "\n\n", $php ) );
+        return $this->php;
     }
 
     private function generateClass() : string
@@ -162,7 +112,13 @@ class PhpClass extends PhpGenerator
             $class = \rtrim( $class, ' ,' );
         }
 
-        return $comment.NEWLINE.\trim( $class );
+        $class = \trim( $class );
+
+        if ( ! $class ) {
+            return '{}';
+        }
+
+        return NEWLINE.$comment.NEWLINE.\trim( $class );
     }
 
     private function generateBody() : string
@@ -174,7 +130,7 @@ class PhpClass extends PhpGenerator
                 $php['traits'][] = "\tuse {$trait};";
             }
 
-            $php['traits'] = \implode( "\n", $php['traits'] );
+            $php['traits'] = NEWLINE.\implode( "\n", $php['traits'] );
         }
 
         foreach ( $this->getFragments() as $fragment ) {
@@ -183,15 +139,9 @@ class PhpClass extends PhpGenerator
             $php[$fragment::TYPE.".{$fragment->name}"] = $tab.$fragment->resolve();
         }
 
-        return \trim( \implode( "\n\n", $php ) );
-    }
+        $body = \implode( "\n\n", $php );
 
-    public function uses( string ...$fqn ) : self
-    {
-        foreach ( $fqn as $use ) {
-            $this->uses[$use] = true;
-        }
-        return $this;
+        return $body ? " {\n{$body}\n}" : ' {}';
     }
 
     public function final( bool $set = true ) : self
@@ -253,9 +203,32 @@ class PhpClass extends PhpGenerator
         return $this;
     }
 
-    public function addProperty( string $name, mixed $value ) : self
-    {
-        $this->properties[$name] = $value;
+    /**
+     * @param string          $name
+     * @param string|string[] $type
+     * @param mixed           $value
+     * @param Visibility      $visibility
+     * @param bool            $readonly
+     * @param ?string         $comment
+     *
+     * @return $this
+     */
+    public function addProperty(
+        string       $name,
+        string|array $type,
+        mixed        $value = Argument::UNASSIGNED,
+        Visibility   $visibility = Visibility::PUBLIC,
+        bool         $readonly = false,
+        ?string      $comment = null,
+    ) : self {
+        $this->properties[$name] = new PhpProperty(
+            $name,
+            $type,
+            $value,
+            $visibility,
+            $readonly,
+            $comment,
+        );
         return $this;
     }
 

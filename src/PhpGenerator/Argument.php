@@ -10,6 +10,8 @@ use InvalidArgumentException;
 
 class Argument
 {
+    public const string UNASSIGNED = '__UNASSIGNED_ARGUMENT__';
+
     /**
      *  Exports a serializable PHP value to PHP code using {@see VarExporter}.
      *
@@ -17,13 +19,16 @@ class Argument
      *
      * @return string
      */
-    public static function export( mixed $value ) : string
-    {
+    public static function export(
+        mixed $value,
+    ) : string {
         try {
-            return VarExporter::export( $value );
+            $argument = VarExporter::export( $value );
         }
         catch ( ExceptionInterface $e ) {
             throw new InvalidArgumentException( $e->getMessage(), $e->getCode(), $e );
         }
+
+        return $argument;
     }
 }
