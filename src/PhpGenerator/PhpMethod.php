@@ -38,6 +38,8 @@ final class PhpMethod extends PhpFragment
     ) {
         $code = PhpGenerator::optimize( $code );
 
+        $code = \str_replace( ';echo', ";\necho", $code );
+
         $code = \explode( "\n", $code );
 
         foreach ( $code as $line => $string ) {

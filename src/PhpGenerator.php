@@ -104,7 +104,7 @@ class PhpGenerator implements Printable
 
     public function generate( bool $regenerate = false ) : string
     {
-        if ( $this->php && ! $regenerate ) {
+        if ( isset( $this->php ) && ! $regenerate ) {
             return $this->php;
         }
 
