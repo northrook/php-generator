@@ -6,11 +6,13 @@ namespace Support;
 
 use Core\Interface\Printable;
 
-use JetBrains\PhpStorm\Language;
+use JetBrains\PhpStorm\{Language};
 use Stringable;
 
 class PhpGenerator implements Printable
 {
+    private ?string $raw = null;
+
     protected string $php;
 
     /** @var array<string, bool> */
@@ -39,6 +41,20 @@ class PhpGenerator implements Printable
         $this->uses( ...( \is_string( $uses ) ? [$uses] : $uses ) );
     }
 
+    /**
+     * @param string ...$php
+     *
+     * @return $this
+     */
+    final public function raw(
+        #[Language( 'PHP' )]
+        string ...$php,
+    ) : self {
+        $this->raw = \implode( NEWLINE, $php ) ?: null;
+
+        return $this;
+    }
+
     public function uses( string ...$fqn ) : self
     {
         foreach ( $fqn as $use ) {
@@ -55,7 +71,11 @@ class PhpGenerator implements Printable
 
         $timestamp       = $dateTime->unixTimestamp;
         $storageDataHash = key_hash( 'xxh64', $this->php );
+        $rawPhpString    = \str_starts_with( $this->php, '<?php' )
+                ? \substr( $this->php, 5 )
+                : $this->php;
 
+        // dump( $rawPhpString );
         $php = <<<PHP
             <?php
                    
@@ -68,7 +88,7 @@ class PhpGenerator implements Printable
                Do not edit it manually.
                    
             -#{$storageDataHash}#------------------------------------------------*/
-            PHP.\substr( $this->php, 5 );
+            PHP.$rawPhpString;
 
         $output = \explode( NEWLINE, \str_replace( ["\r\n", "\r", "\n"], NEWLINE, $php ) );
 
@@ -88,27 +108,15 @@ class PhpGenerator implements Printable
         return \trim( \implode( NEWLINE, $output ) ).NEWLINE;
     }
 
-    /**
-     * @param string ...$php
-     *
-     * @return $this
-     */
-    final public function raw(
-        #[Language( 'PHP' )]
-        string ...$php,
-    ) : self {
-        $this->php = \implode( NEWLINE, $php );
-
-        return $this;
-    }
-
     public function generate( bool $regenerate = false ) : string
     {
         if ( isset( $this->php ) && ! $regenerate ) {
             return $this->php;
         }
 
-        return $this->php = $this->generateHead();
+        $this->php = $this->generateHead();
+
+        return $this->php;
     }
 
     protected function generateHead() : string
@@ -131,6 +139,10 @@ class PhpGenerator implements Printable
             if ( \array_key_exists( 'use', $php ) ) {
                 $php['use'] = \implode( "\n", $php['use'] );
             }
+        }
+
+        if ( $this->raw ) {
+            $php['raw'] = $this->raw;
         }
 
         return \trim( \implode( "\n\n", $php ) );
@@ -226,6 +238,7 @@ class PhpGenerator implements Printable
 
     final public function toString() : string
     {
+        dump( $this );
         return $this->__toString();
     }
 
